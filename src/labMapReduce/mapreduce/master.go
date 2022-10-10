@@ -1,6 +1,7 @@
 package mapreduce
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/rpc"
@@ -28,11 +29,12 @@ type Master struct {
 
 	idleWorkerChan   chan *RemoteWorker
 	failedWorkerChan chan *RemoteWorker
-
 	///////////////////////////////
 	// ADD EXTRA PROPERTIES HERE //
 	///////////////////////////////
 	// Fault Tolerance
+	failedOperationChan chan *Operation
+	totalFailedOp       int // used to count how many failed operation we need to run again
 }
 
 type Operation struct {
@@ -48,7 +50,9 @@ func newMaster(address string) (master *Master) {
 	master.workers = make(map[int]*RemoteWorker, 0)
 	master.idleWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.failedWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
+	master.failedOperationChan = make(chan *Operation, RETRY_OPERATION_BUFFER)
 	master.totalWorkers = 0
+	master.totalFailedOp = 0
 	return
 }
 
@@ -77,9 +81,15 @@ func (master *Master) acceptMultipleConnections() {
 
 // handleFailingWorkers will handle workers that fails during an operation.
 func (master *Master) handleFailingWorkers() {
-	/////////////////////////
-	// YOUR CODE GOES HERE //
-	/////////////////////////
+	failedWorker, valid := <-master.failedWorkerChan
+
+	if valid {
+		fmt.Printf("Removing worker %d from master list\n", failedWorker.id)
+		master.workersMutex.Lock()
+		delete(master.workers, failedWorker.id)
+		master.workersMutex.Unlock()
+		fmt.Println("worker removed")
+	}
 }
 
 // Handle a single connection until it's done, then closes it.

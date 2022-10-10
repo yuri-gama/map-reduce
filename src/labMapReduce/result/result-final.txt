@@ -1,0 +1,11 @@
+{"Key":"gato","Value":"2"}
+{"Key":"testando","Value":"1"}
+{"Key":"legais","Value":"1"}
+{"Key":"bem","Value":"1"}
+{"Key":"cat","Value":"1"}
+{"Key":"tipo","Value":"1"}
+{"Key":"bolas","Value":"2"}
+{"Key":"dog","Value":"2"}
+{"Key":"de","Value":"1"}
+{"Key":"palavras","Value":"2"}
+{"Key":"e","Value":"1"}

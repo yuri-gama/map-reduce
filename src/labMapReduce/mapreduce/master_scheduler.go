@@ -1,6 +1,7 @@
 package mapreduce
 
 import (
+	"fmt"
 	"log"
 	"sync"
 )
@@ -23,6 +24,7 @@ func (master *Master) schedule(task *Task, proc string, filePathChan chan string
 	log.Printf("Scheduling %v operations\n", proc)
 
 	counter = 0
+	fmt.Println(counter, proc)
 	for filePath = range filePathChan {
 		operation = &Operation{proc, counter, filePath}
 		counter++
@@ -33,6 +35,25 @@ func (master *Master) schedule(task *Task, proc string, filePathChan chan string
 	}
 
 	wg.Wait()
+	var valid, ok bool
+	for master.totalFailedOp != 0 {
+		select {
+		case operation, valid = <-master.failedOperationChan:
+			ok = true
+		default:
+			ok = false
+		}
+		if ok && valid {
+			master.totalFailedOp -= 1
+			operation = &Operation{operation.proc, operation.id, operation.filePath}
+
+			worker = <-master.idleWorkerChan
+			wg.Add(1)
+			go master.runOperation(worker, operation, &wg)
+		}
+
+		wg.Wait()
+	}
 
 	log.Printf("%vx %v operations completed\n", counter, proc)
 	return counter
@@ -57,8 +78,11 @@ func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operat
 	if err != nil {
 		log.Printf("Operation %v '%v' Failed. Error: %v\n", operation.proc, operation.id, err)
 		wg.Done()
+		master.failedOperationChan <- operation
 		master.failedWorkerChan <- remoteWorker
+		master.totalFailedOp += 1
 	} else {
+		fmt.Println("predone: ", operation.filePath)
 		wg.Done()
 		master.idleWorkerChan <- remoteWorker
 	}
