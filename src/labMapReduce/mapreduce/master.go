@@ -81,14 +81,25 @@ func (master *Master) acceptMultipleConnections() {
 
 // handleFailingWorkers will handle workers that fails during an operation.
 func (master *Master) handleFailingWorkers() {
-	failedWorker, valid := <-master.failedWorkerChan
+	var (
+		ok, valid    bool
+		failedWorker *RemoteWorker
+	)
 
-	if valid {
-		fmt.Printf("Removing worker %d from master list\n", failedWorker.id)
-		master.workersMutex.Lock()
-		delete(master.workers, failedWorker.id)
-		master.workersMutex.Unlock()
-		fmt.Println("worker removed")
+	for {
+		select {
+		case failedWorker, valid = <-master.failedWorkerChan:
+			ok = true
+		default:
+			ok = false
+		}
+		if valid && ok {
+			fmt.Printf("Removing worker %d from master list\n", failedWorker.id)
+			master.workersMutex.Lock()
+			delete(master.workers, failedWorker.id)
+			master.workersMutex.Unlock()
+			fmt.Println("worker removed")
+		}
 	}
 }
 

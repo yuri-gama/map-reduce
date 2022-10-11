@@ -82,7 +82,6 @@ func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operat
 		master.failedWorkerChan <- remoteWorker
 		master.totalFailedOp += 1
 	} else {
-		fmt.Println("predone: ", operation.filePath)
 		wg.Done()
 		master.idleWorkerChan <- remoteWorker
 	}
